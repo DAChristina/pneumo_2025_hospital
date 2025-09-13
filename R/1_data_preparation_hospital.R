@@ -1,7 +1,7 @@
 library(tidyverse)
 
 # Data cleaning process for hospital data ######################################
-df_epi_hospital <- read.csv("raw_data/temporary_df_epi_hospital_combine_row.csv") %>% 
+df_epi_hospital <- readxl::read_excel("raw_data/temporary_df_epi_hospital_combine_row_cleaned_27Aug2025.xlsx") %>% 
   # dplyr::rename_all(~stringr::str_replace_all(., " ", "_")) %>% 
   # rename_with(~ gsub("[\\. ]", "_", tolower(.))) %>%
   janitor::clean_names() %>% 
@@ -11,43 +11,43 @@ df_epi_hospital <- read.csv("raw_data/temporary_df_epi_hospital_combine_row.csv"
                 usia_bulan_dc = round(usia_bulan_dc, 0),
                 
                 # some age grouping
-                grup_usia = case_when(
-                  usia_bulan_dc < 1 ~ "0 bulan",
-                  usia_bulan_dc >= 1 & usia_bulan_dc < 7 ~ "1-6 bulan",
-                  usia_bulan_dc >= 7 & usia_bulan_dc < 13 ~ "7-12 bulan",
-                  usia_bulan_dc >= 13 & usia_bulan_dc < 19 ~ "13-18 bulan",
-                  usia_bulan_dc >= 19 & usia_bulan_dc < 25 ~ "19-24 bulan",
+                group_age = case_when(
+                  usia_bulan_dc < 1 ~ "0 months",
+                  usia_bulan_dc >= 1 & usia_bulan_dc < 7 ~ "1-6 months",
+                  usia_bulan_dc >= 7 & usia_bulan_dc < 13 ~ "7-12 months",
+                  usia_bulan_dc >= 13 & usia_bulan_dc < 19 ~ "13-18 months",
+                  usia_bulan_dc >= 19 & usia_bulan_dc < 25 ~ "19-24 months",
                   
                   # usia_bulan_dc <= 24 ~ as.character(round(usia_bulan_dc, 0)),
-                  usia_tahun_dc >= 2 & usia_tahun_dc < 6 ~ "2-5 tahun",
-                  usia_tahun_dc >= 6 & usia_tahun_dc < 11 ~ "6-10 tahun",
-                  usia_tahun_dc >= 11 ~ "10+ tahun",
+                  usia_tahun_dc >= 2 & usia_tahun_dc < 6 ~ "2-5 years",
+                  usia_tahun_dc >= 6 & usia_tahun_dc < 11 ~ "6-10 years",
+                  usia_tahun_dc >= 11 ~ "10+ years",
                 ),
-                grup_usia = factor(grup_usia,
-                                   levels = c("0 bulan",
-                                              "1-6 bulan",
-                                              "7-12 bulan",
-                                              "13-18 bulan",
-                                              "19-24 bulan",
-                                              "2-5 tahun",
-                                              "6-10 tahun",
-                                              "10+ tahun"
+                group_age = factor(group_age,
+                                   levels = c("0 months",
+                                              "1-6 months",
+                                              "7-12 months",
+                                              "13-18 months",
+                                              "19-24 months",
+                                              "2-5 years",
+                                              "6-10 years",
+                                              "10+ years"
                                               )),
                 
-                grup_usia_vaksin = case_when(
-                  usia_tahun_dc < 1 ~ "0 tahun",
-                  usia_tahun_dc >= 1 & usia_tahun_dc < 3 ~ "1-2 tahun",
-                  usia_tahun_dc >= 3 & usia_tahun_dc < 6 ~ "3-5 tahun",
-                  usia_tahun_dc >= 6 & usia_tahun_dc < 11 ~ "6-10 tahun",
-                  usia_tahun_dc >= 11 ~ "11-18 tahun",
+                group_age_vaccine = case_when(
+                  usia_tahun_dc < 1 ~ "0 years",
+                  usia_tahun_dc >= 1 & usia_tahun_dc < 3 ~ "1-2 years",
+                  usia_tahun_dc >= 3 & usia_tahun_dc < 6 ~ "3-5 years",
+                  usia_tahun_dc >= 6 & usia_tahun_dc < 11 ~ "6-10 years",
+                  usia_tahun_dc >= 11 ~ "11-18 years",
                   
                 ),
-                grup_usia_vaksin = factor(grup_usia_vaksin,
-                                   levels = c("0 tahun",
-                                              "1-2 tahun",
-                                              "3-5 tahun",
-                                              "6-10 tahun",
-                                              "11-18 tahun"
+                group_age_vaccine = factor(group_age_vaccine,
+                                   levels = c("0 years",
+                                              "1-2 years",
+                                              "3-5 years",
+                                              "6-10 years",
+                                              "11-18 years"
                                    )),
                 
                 # immunised vs. unimmunised
@@ -81,16 +81,16 @@ df_epi_hospital_duplicated_ids <- df_epi_hospital %>%
   glimpse()
 
 # quick viz to see data distribution
-hist(df_epi_hospital$usia_hari_dc)
+hist(df_epi_hospital$age_hari_dc)
 hist(df_epi_hospital$usia_bulan_dc)
 hist(df_epi_hospital$usia_tahun_dc)
 
 # usia all data
 ggplot(df_epi_hospital %>% 
-         group_by(grup_usia) %>% 
+         group_by(group_age) %>% 
          summarise(count = n())
        ,
-       aes(x = grup_usia, y = count, fill = grup_usia)) +
+       aes(x = group_age, y = count, fill = group_age)) +
   geom_bar(stat = "identity") +
   # geom_text(aes(label = paste0(round(percentage, 1), "%")), vjust = -0.5, size = 3) +
   # scale_y_log10() +
@@ -135,37 +135,37 @@ ggplot(df_epi_hospital %>%
   guides(fill = guide_legend(ncol = 3)) +
   theme_void()
 
-# piechart based on grup_usia
+# piechart based on group_age
 ggplot(df_epi_hospital %>% 
-         group_by(grup_usia) %>% 
+         group_by(group_age) %>% 
          summarise(count = n()) %>%
          mutate(prop = round(count/sum(count)*100, 1)) %>% 
-         arrange(desc(grup_usia)) %>%
+         arrange(desc(group_age)) %>%
          mutate(label_coor = cumsum(prop)- 0.5*prop)
        ,
-       aes(x = "", y = prop, fill = grup_usia)) +
+       aes(x = "", y = prop, fill = group_age)) +
   geom_bar(stat = "identity", width = 1, , color="white") +
   coord_polar("y", start=0) +
   geom_text(aes(y = label_coor, label = paste0(prop, "%")), color = "grey10", size=3) +
   scale_fill_brewer(palette="Set1") +
   theme_void()
 
-# piechart based on grup_usia_vaksin
+# piechart based on group_age_vaccine
 ggplot(df_epi_hospital %>% 
-         group_by(grup_usia_vaksin) %>% 
+         group_by(group_age_vaccine) %>% 
          summarise(count = n()) %>%
          mutate(prop = round(count/sum(count)*100, 1)) %>% 
-         arrange(desc(grup_usia_vaksin)) %>%
+         arrange(desc(group_age_vaccine)) %>%
          mutate(label_coor = cumsum(prop)- 0.5*prop)
        ,
-       aes(x = "", y = prop, fill = grup_usia_vaksin)) +
+       aes(x = "", y = prop, fill = group_age_vaccine)) +
   geom_bar(stat = "identity", width = 1, , color="white") +
   coord_polar("y", start=0) +
   geom_text(aes(y = label_coor, label = paste0(prop, "%")), color = "grey10", size=3) +
   scale_fill_brewer(palette="Set1") +
   theme_void()
 
-# seasonality based on grup_usia
+# seasonality based on group_age
 ggplot(df_epi_hospital %>% 
          mutate(
            iso_week = paste0(year(tanggal_masuk_rs), "-W", sprintf("%02d", week(tanggal_masuk_rs)), "-1"),
@@ -173,11 +173,11 @@ ggplot(df_epi_hospital %>%
            
            yearMonth = floor_date(as.Date(tanggal_masuk_rs), unit = "month"),
          ) %>% 
-         group_by(yearMonth, grup_usia
+         group_by(yearMonth, group_age
                   ) %>% 
          summarise(count = n())
        ,
-       aes(x = yearMonth, y = count, fill = grup_usia)) +
+       aes(x = yearMonth, y = count, fill = group_age)) +
   geom_bar(stat = "identity") +
   theme_bw() +
   # scale_x_date(date_labels = "%Y", date_breaks = "1 year",
@@ -199,10 +199,10 @@ ggplot(df_epi_hospital %>%
 
 # usia grouped by area
 ggplot(df_epi_hospital %>% 
-         group_by(grup_usia_vaksin, area) %>% 
+         group_by(group_age_vaccine, area) %>% 
          summarise(count = n())
        ,
-       aes(x = grup_usia_vaksin, y = count, fill = area)) +
+       aes(x = group_age_vaccine, y = count, fill = area)) +
   geom_bar(stat = "identity") +
   # geom_text(aes(label = paste0(round(percentage, 1), "%")), vjust = -0.5, size = 3) +
   # scale_y_log10() +
@@ -223,10 +223,10 @@ ggplot(df_epi_hospital %>%
 
 # usia grouped by pcv13 & area
 ggplot(df_epi_hospital %>% 
-         group_by(grup_usia_vaksin, area, jumlah_dosis_vaksin_pcv_13) %>% 
+         group_by(group_age_vaccine, area, jumlah_dosis_vaksin_pcv_13) %>% 
          summarise(count = n())
        ,
-       aes(x = grup_usia_vaksin, y = count, fill = area)) +
+       aes(x = group_age_vaccine, y = count, fill = area)) +
   geom_bar(stat = "identity") +
   # geom_text(aes(label = paste0(round(percentage, 1), "%")), vjust = -0.5, size = 3) +
   # scale_y_log10() +
@@ -248,10 +248,10 @@ ggplot(df_epi_hospital %>%
 
 # usia grouped by bagaimanakah_prognosis_pasien
 ggplot(df_epi_hospital %>% 
-         group_by(grup_usia_vaksin, bagaimanakah_prognosis_pasien) %>% 
+         group_by(group_age_vaccine, bagaimanakah_prognosis_pasien) %>% 
          summarise(count = n())
        ,
-       aes(x = grup_usia_vaksin, y = count, fill = bagaimanakah_prognosis_pasien)) +
+       aes(x = group_age_vaccine, y = count, fill = bagaimanakah_prognosis_pasien)) +
   geom_bar(stat = "identity") +
   # geom_text(aes(label = paste0(round(percentage, 1), "%")), vjust = -0.5, size = 3) +
   # scale_y_log10() +
@@ -276,10 +276,10 @@ ggplot(df_epi_hospital %>%
          filter(!is.na(bagaimanakah_prognosis_pasien),
                 bagaimanakah_prognosis_pasien != ""
                 ) %>% 
-         group_by(grup_usia_vaksin, bagaimanakah_prognosis_pasien, jumlah_dosis_vaksin_pcv_13) %>% 
+         group_by(group_age_vaccine, bagaimanakah_prognosis_pasien, jumlah_dosis_vaksin_pcv_13) %>% 
          summarise(count = n())
        ,
-       aes(x = grup_usia_vaksin, y = count, fill = bagaimanakah_prognosis_pasien)) +
+       aes(x = group_age_vaccine, y = count, fill = bagaimanakah_prognosis_pasien)) +
   geom_bar(stat = "identity") +
   # geom_text(aes(label = paste0(round(percentage, 1), "%")), vjust = -0.5, size = 3) +
   # scale_y_log10() +
@@ -306,14 +306,14 @@ ggplot(df_epi_hospital %>%
 # count
 ggplot(
   df_epi_hospital %>% 
-    group_by(bagaimanakah_prognosis_pasien, pcv13_group, grup_usia_vaksin) %>% 
+    group_by(bagaimanakah_prognosis_pasien, pcv13_group, group_age_vaccine) %>% 
     summarise(count_vaccinated = n(), .groups = "drop") %>% 
     filter(
       !is.na(bagaimanakah_prognosis_pasien),
       bagaimanakah_prognosis_pasien != ""
     )
   ,
-  aes(x = grup_usia_vaksin, y = count_vaccinated, fill = pcv13_group)
+  aes(x = group_age_vaccine, y = count_vaccinated, fill = pcv13_group)
 ) +
   geom_bar(stat = "identity") +
   theme_bw() +
@@ -328,7 +328,7 @@ ggplot(
 # chisq or fisher's exact test test for children below 5 or 2
 contingency_table <- df_epi_hospital %>% 
   select(bagaimanakah_prognosis_pasien,
-         grup_usia_vaksin,
+         group_age_vaccine,
          pcv13_group) %>% 
   mutate(
     bagaimanakah_prognosis_pasien = case_when(
@@ -339,7 +339,7 @@ contingency_table <- df_epi_hospital %>%
   filter(
     !is.na(bagaimanakah_prognosis_pasien),
     bagaimanakah_prognosis_pasien != "",
-    grup_usia_vaksin == "0 tahun" | grup_usia_vaksin == "1-2 tahun" | grup_usia_vaksin == "3-5 tahun"
+    group_age_vaccine == "0 years" | group_age_vaccine == "1-2 years" | group_age_vaccine == "3-5 years"
   ) %>%
   count(bagaimanakah_prognosis_pasien, pcv13_group) %>%
   pivot_wider(
@@ -359,21 +359,21 @@ fisher.test(contingency_table)
 
 # proportion
 ggplot(df_epi_hospital %>% 
-         group_by(bagaimanakah_prognosis_pasien, pcv13_group, grup_usia_vaksin) %>% 
+         group_by(bagaimanakah_prognosis_pasien, pcv13_group, group_age_vaccine) %>% 
          summarise(count_vaccinated = n()) %>% 
          left_join(
            df_epi_hospital %>% 
-             group_by(bagaimanakah_prognosis_pasien, grup_usia_vaksin) %>% 
+             group_by(bagaimanakah_prognosis_pasien, group_age_vaccine) %>% 
              summarise(count_prognosis = n())
            ,
-           by = c("grup_usia_vaksin", "bagaimanakah_prognosis_pasien")
+           by = c("group_age_vaccine", "bagaimanakah_prognosis_pasien")
          ) %>% 
          mutate(prop = round(count_vaccinated/count_prognosis*100, 1)) %>% 
          filter(!is.na(bagaimanakah_prognosis_pasien),
                        bagaimanakah_prognosis_pasien != "",
          )
        ,
-       aes(x = grup_usia_vaksin, y = prop, fill = pcv13_group)) +
+       aes(x = group_age_vaccine, y = prop, fill = pcv13_group)) +
   geom_bar(stat = "identity") +
   theme_bw() +
   facet_wrap(~ bagaimanakah_prognosis_pasien) +
@@ -457,20 +457,20 @@ df_epi_hospital %>%
   dplyr::select(contains("manakah_tanda_tanda_pneumonia_yang_ditemukan_")) %>% 
   dplyr::rename_with(~ str_remove(., "manakah_tanda_tanda_pneumonia_yang_ditemukan_")
   ) %>% 
-  dplyr::mutate(
-    # have already in 1 and 0
-    "cough" = batuk,
-    "rapid breathing according to age" = nafas_cepat_menurut_usia,
-    "chest wall retraction" = tarikan_dinding_dada,
-    "central cyanosis" = sianosis_sentral,
-    "grunting" = merintih,
-    "unable to drink" = tidak_dapat_minum,
-    "lethargy" = letargi,
-    "decreased consciousness" = penurunan_kesadaran,
-    "seizures" = kejang,
-    "pleurisy (chest pain)" = pleuritis_nyeri_dada
-    
-  ) %>% 
+  dplyr::transmute(
+    cough = batuk,
+    `rapid breathing according to age` = nafas_cepat_menurut_usia,
+    `chest wall retraction` = tarikan_dinding_dada,
+    `central cyanosis` = sianosis_sentral,
+    grunting = merintih,
+    `unable to drink` = tidak_dapat_minum,
+    lethargy = letargi,
+    `decreased consciousness` = penurunan_kesadaran,
+    seizures = kejang,
+    `pleurisy (chest pain)` = pleuritis_nyeri_dada
+  ) %>%
+  dplyr::mutate(across(everything(), as.numeric)) %>%
+  as.data.frame() %>% 
   UpSetR::upset(
     sets = c("cough",
              "rapid breathing according to age",
@@ -484,7 +484,7 @@ df_epi_hospital %>%
              "pleurisy (chest pain)"
              ),
     order.by = "freq",
-    empty.intersections = "on",
+    empty.intersections = "off",
     number.angles = 0,
     point.size = 3.5,
     line.size = 2, 
@@ -497,7 +497,7 @@ df_epi_hospital %>%
   dplyr::select(contains("jika_ya_manakah_antibiotik_di_bawah_ini_yang_diberikan_")) %>% 
   dplyr::rename_with(~ str_remove(., "jika_ya_manakah_antibiotik_di_bawah_ini_yang_diberikan_")
   ) %>% 
-  dplyr::mutate(
+  dplyr::transmute(
     # have already in 1 and 0
     "amoxicillin" = amoksisilin,
     "amoxicillin-clavulanic acid" = amoksisilin_as_klavulanat,
@@ -514,6 +514,8 @@ df_epi_hospital %>%
   # need to be discussed: NA in antibiotics usage
   dplyr::filter(!is.na(amoxicillin)
                 ) %>% 
+  dplyr::mutate(across(everything(), as.numeric)) %>%
+  as.data.frame() %>% 
   UpSetR::upset(
     sets = c("amoxicillin",
              "amoxicillin-clavulanic acid",
@@ -527,7 +529,7 @@ df_epi_hospital %>%
              "other"
     ),
     order.by = "freq",
-    empty.intersections = "on",
+    empty.intersections = "off",
     number.angles = 0,
     point.size = 3.5,
     line.size = 2, 

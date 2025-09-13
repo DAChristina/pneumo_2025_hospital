@@ -95,6 +95,17 @@ df_one_hot_encoded <- cleaned_other_abx %>%
   # view() %>% 
   glimpse()
 
+abx_major <- df_one_hot_encoded %>%
+  summarise(across(everything(), ~ sum(. == 1, na.rm = TRUE))) %>% 
+  pivot_longer(
+    cols = everything(),
+    names_to = "antibiotic",
+    values_to = "count"
+  ) %>%
+  arrange(desc(count)) %>% 
+  filter(count >= 2) %>% 
+  pull(antibiotic)
+
 dplyr::left_join(
   df_epi_hospital %>% 
     dplyr::select(
@@ -129,40 +140,15 @@ dplyr::left_join(
   # need to be discussed: NA in antibiotics usage
   dplyr::filter(!is.na(amoxicillin)
   ) %>% 
+  dplyr::mutate(
+    across(everything(), ~ as.numeric(.)),
+    across(where(is.numeric), ~ replace_na(., 0))
+  ) %>% 
+  as.data.frame() %>% 
   UpSetR::upset(
-    sets = c("amoxicillin",
-             "amoxicillin-clavulanic acid",
-             "ampicillin",
-             "ampicillin-sulbactam",
-             "azithromycin",
-             "cefotaxime main",
-             "ceftriaxone",
-             "erythromycin",
-             "trimethoprim-sulfamethoxazole",
-             
-             "meropenem",
-             "vancomycin",
-             "amikacin",
-             "ceftazidime",
-             "gentamicin",
-             "metronidazole",
-             "cefixime",
-             "cefoperazone_sulbactam",
-             "cefazolin",
-             "ethambutol",
-             "isoniazid",
-             "pyrazinamide",
-             "rifampicin",
-             "levofloxacin",
-             "ciprofloxacin",
-             "cotrimoxazole",
-             "aminophylline",
-             "vicilin",
-             "cefotaxime"
-             
-    ),
+    sets = abx_major,
     order.by = "freq",
-    empty.intersections = "on",
+    empty.intersections = "off",
     number.angles = 0,
     point.size = 3.5,
     line.size = 2, 
