@@ -1,47 +1,8 @@
-df <- df_epi_hospital %>% 
-  filter(
-    # lama_di_rs_hari_dc < 0 | lama_di_rs_hari_dc >= 50 # some patients spent >= 50 days in RS
-  ) %>% 
-  select(contains(c("tanggal_")),
-         start, end, no_id_subjek,
-         -contains(c("pcv", "tanggal_pengambilan")),
-         -tanggal_pengisian_form,
-         -tanggal_pengisian_crf,
-         -tanggal_pemeriksaan_rontgen_thorax,
-         -tanggal_tanda_tangan_persetujuan_informed_consent
-         ) %>% 
-  glimpse()
-
-hist(df_epi_hospital$lama_di_rs_hari_dc, breaks = 100)
-
-# LOS calculations overall/per-ageGroups/per-area
-# must clean up prematurity & complications first!
-summary_LOS <- df_epi_hospital %>%
-  rename(prematur = diantara_daftar_nama_penyakit_di_bawah_ini_manakah_penyakit_medis_atau_kondisi_kronik_yang_mendasari_pasien_prematuritas) %>% 
-  mutate(prematur = ifelse(prematur == 1, "Ya", "Tidak")) %>% 
-  group_by(grup_usia_vaksin, prematur) %>% 
-  summarise(
-    median_los = median(lama_di_rs_hari_dc, na.rm = TRUE),
-    iqr_los = IQR(lama_di_rs_hari_dc, na.rm = TRUE),
-    q1 = quantile(lama_di_rs_hari_dc, 0.25, na.rm = TRUE),
-    q3 = quantile(lama_di_rs_hari_dc, 0.75, na.rm = TRUE)
-  ) %>% 
-  view() %>% 
-  glimpse()
-
-summary_LOS %>% 
-  ggplot(., aes(x = prematur)) +
-  geom_point(aes(y = iqr_los), colour = "darkgreen", size = 2) +
-  geom_errorbar(aes(
-    ymin = q1,
-    ymax = q3,
-    width = .1),
-    colour = "darkgreen") +
-  geom_point(aes(y = median_los), colour = "steelblue", size = 2) +
-  theme_bw() +
-  facet_wrap(~grup_usia_vaksin)
 
 
+
+
+# tobecontinued
 df_long <- df %>%
   pivot_longer(cols = starts_with("tanggal_"), names_to = "tanggal_type", values_to = "tanggal_")
 
