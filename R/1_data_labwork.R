@@ -33,7 +33,7 @@ lab_data <- bind_NP_data %>%
   glimpse()
 
 
-# combine lab_data 
+# combine lab_data with metadata
 test_labWork <- df_epi_clean %>% 
   dplyr::full_join(
     lab_data %>% 

@@ -886,6 +886,39 @@ cowplot::plot_grid(plotlist = plotStore_hospital,
                    nrow = 3)
 dev.off()
 
+# pivot longer symptoms
+df_epi_clean %>% 
+  dplyr::mutate(
+    chosen_bacteraemia = ifelse(diag_2signs_bacteraemia == 1, "bacteremia", NA),
+    chosen_pneumonia = ifelse(diag_2signs_pneumonia == 1, "pneumonia", NA),
+    chosen_meningitis = ifelse(diag_2signs_meningitis == 1, "meningitis", NA),
+    chosen_pleural_effusion = ifelse(diag_2signs_pleural_effusion == 1, "pleural_effusion", NA),
+  ) %>% 
+  pivot_longer(
+    cols = contains("chosen_"),
+    names_to = "symptoms"
+  ) %>% 
+  dplyr::group_by(hospital, value) %>% 
+  dplyr::summarise(count = n()) %>% 
+  glimpse()
+
+# test pneumo only per hospital
+df_epi_clean %>% 
+  dplyr::mutate(peumoOnly = case_when(
+    diag_2signs_pneumonia == 1 &
+      diag_2signs_bacteraemia == 0 &
+      diag_2signs_meningitis ==  0 &
+      diag_2signs_pleural_effusion == 0
+    ~ "pneumonia only",
+    TRUE ~ NA
+    )
+  ) %>% 
+  dplyr::group_by(hospital, peumoOnly) %>% 
+  dplyr::summarise(count = n()) %>% 
+  dplyr::filter(peumoOnly == "pneumonia only") %>% 
+  dplyr::glimpse()
+  
+
 # UpSetR for pneumonia symptoms
 # using ComplexUpset
 df_signs <- df_epi_clean %>%
@@ -1623,4 +1656,121 @@ bac_flow_filtered <- df_epi_clean %>%
   theme(legend.position = "none")
 bac_flow_filtered
 
+# test flow using NP data (load df_epi_gen_pneumo) #############################
+bac_flow_not_sampled <- read.csv("inputs/genData_pneumo_with_epiData_with_final_pneumo_decision.csv") %>% 
+  dplyr::select(contains("_species")) %>% 
+  dplyr::mutate(
+    filter_group = case_when(
+      is.na(sample_blood_bacteria_species) &
+        is.na(sample_sputum_bacteria_species) &
+        is.na(sample_csf_bacteria_species) &
+        is.na(sample_pleural_bacteria_species) &
+        is.na(workWGS_species_pw)
+      ~ 0,
+      TRUE ~ 1
+    )
+  ) %>% 
+  dplyr::filter(filter_group == 1) %>% 
+  dplyr::mutate(
+    across(everything(), ~ replace_na(., "Not Sampled")),
+    workWGS_species_pw = ifelse(workWGS_species_pw == "Not Sampled",
+                                "Not Sampled/Analysed",
+                                workWGS_species_pw)
+  ) %>% 
+  dplyr::rename(
+    blood = sample_blood_bacteria_species,
+    `nasopharynx (WGS)` = workWGS_species_pw,
+    sputum = sample_sputum_bacteria_species,
+    pleural = sample_pleural_bacteria_species,
+    CSF = sample_csf_bacteria_species
+  ) %>% 
+  ggsankey::make_long(sputum,
+                      `nasopharynx (WGS)`,
+                      blood,
+                      pleural,
+                      CSF
+  ) %>% 
+  glimpse() %>% 
+  ggplot(., aes(x = x, 
+                next_x = next_x, 
+                node = node, 
+                next_node = next_node,
+                fill = factor(node),
+                label = node)) +
+  geom_sankey(flow.alpha = 0.5, node.color = 1,
+              width = 0.001) +
+  geom_sankey_label(size = 3.5, color = 1, fill = "white") +
+  scale_fill_viridis_d() +
+  labs(x = NULL) +
+  theme_sankey(base_size = 16) +
+  theme(legend.position = "none")
+bac_flow_not_sampled
+
+bac_flow_filtered <- read.csv("inputs/genData_pneumo_with_epiData_with_final_pneumo_decision.csv") %>% 
+  dplyr::select(contains("_species")) %>% 
+  dplyr::mutate(
+    filter_group = case_when(
+      is.na(sample_blood_bacteria_species) &
+        is.na(sample_sputum_bacteria_species) &
+        is.na(sample_csf_bacteria_species) &
+        is.na(sample_pleural_bacteria_species) &
+        is.na(workWGS_species_pw)
+      ~ 0,
+      TRUE ~ 1
+    )
+  ) %>% 
+  dplyr::filter(filter_group == 1) %>% 
+  dplyr::mutate(
+    across(everything(), ~ replace_na(., "Not Sampled")),
+    workWGS_species_pw = ifelse(workWGS_species_pw == "Not Sampled",
+                                "Not Sampled/Analysed",
+                                workWGS_species_pw),
+    filter_group = case_when(
+      (sample_blood_bacteria_species == "Not Sampled" |
+         sample_blood_bacteria_species == "No Growth") & 
+        (sample_sputum_bacteria_species == "Not Sampled" |
+           sample_sputum_bacteria_species == "No Growth") & 
+        (sample_csf_bacteria_species == "Not Sampled" |
+           sample_csf_bacteria_species == "No Growth") &
+        (sample_pleural_bacteria_species == "Not Sampled" |
+           sample_pleural_bacteria_species == "No Growth")
+      ~ 0,
+      TRUE ~ 1
+    )
+  ) %>% 
+  dplyr::filter(filter_group == 1) %>% 
+  dplyr::rename(
+    blood = sample_blood_bacteria_species,
+    `nasopharynx (WGS)` = workWGS_species_pw,
+    sputum = sample_sputum_bacteria_species,
+    pleural = sample_pleural_bacteria_species,
+    CSF = sample_csf_bacteria_species
+  ) %>% 
+  ggsankey::make_long(sputum,
+                      `nasopharynx (WGS)`,
+                      blood,
+                      pleural,
+                      CSF
+  ) %>% 
+  glimpse() %>% 
+  ggplot(., aes(x = x, 
+                next_x = next_x, 
+                node = node, 
+                next_node = next_node,
+                fill = factor(node),
+                label = node)) +
+  geom_sankey(flow.alpha = 0.5, node.color = 1,
+              width = 0.001) +
+  geom_sankey_label(size = 3.5, color = 1, fill = "white") +
+  scale_fill_viridis_d() +
+  labs(x = NULL) +
+  theme_sankey(base_size = 16) +
+  theme(legend.position = "none")
+bac_flow_filtered
+
+png(file = "pictures/sankey_bacteria_all_flow_filtered.png",
+    width = 29, height = 18,
+    unit = "cm", res = 600)
+print(bac_flow_filtered)
+dev.off()
 
